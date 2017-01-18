@@ -1,0 +1,553 @@
+<html>
+<head>
+	<title></title>
+	<style type="text/css">
+		canvas {
+			border:1px solid black;
+			float:left;
+		}
+		#canvas2 {
+			margin-left:10px;
+		}
+	</style>
+	<script type="text/javascript" src="./lib/processing.min.js"></script>
+	<script type="text/javascript" src="./lib/perlin.js"></script>
+	<script type="text/javascript" src="./lib/color.js"></script>
+	<script type="text/javascript" src="./lib/simplex-noise.js"></script>
+	<script type="text/javascript" src="./lib/delaunay.js"></script>
+
+</head>
+<body>
+<canvas id = "canvas" width="960" height="600"></canvas>
+<canvas id = "canvas2" width="400" height="400"></canvas>
+
+<!-- <canvas data-processing-sources="hello-web.pde"></canvas> -->
+
+<script type="text/javascript">
+// ------ Set up some basic stuff ---------
+var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext("2d");
+ctx.webkitImageSmoothingEnabled=true;
+
+//constants
+var CANVAS_HEIGHT = 600;
+var CANVAS_WIDTH = 960;
+var LOWER_LEFT={x:CANVAS_WIDTH, y:CANVAS_HEIGHT};
+var LOWER_RIGHT={x:0, y:CANVAS_HEIGHT};
+var UPPER_LEFT={x:CANVAS_WIDTH, y:0};
+var UPPER_RIGHT={x:0, y:0};
+
+
+//smoothing
+ctx.translate(0.5, 0.5);
+ctx.imageSmoothingEnabled = true;
+
+ctx.strokeStyle="#000000";
+
+//make some arrays, params, etc
+// var mountains = [];
+var colors = {
+	skyColor:"#000000"
+};
+var data = {
+	time: "day"
+}
+var clickboxes = [];
+
+//a thing
+function copy(object) {
+	return JSON.parse(JSON.stringify(object));
+}
+function abs(number) {
+	if(number>0) return number; else return -number;
+}
+function toTuple(coordinate) {
+	return {x:coordinate[0], y:coordinate[1]};
+}
+var seed = 1;
+function random() {
+    var x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+}
+//mathy functions setup
+var simplex = new SimplexNoise(); //noise is from -1.0 to 1.0
+//4 octaves
+function mountainNoise(x, z) {
+	return simplex.noise2D(z, x)+0.5*simplex.noise2D(0, 2*x)+0.25*simplex.noise2D(0, 4*x)
+		+0.125*simplex.noise2D(0, 8*x);
+}
+//1 octave
+function hillNoise(x, z) {
+	return simplex.noise2D(z, x);
+}
+function randomHex() {
+	return '#'+Math.floor(Math.random()*16777215).toString(16);
+}
+function toHslString(color) {
+	return "hsl("+(color.h%1.0)*180+", "+(color.s%1.0)*100+"%, "+(color.l%1.0)*100+"%)";
+}
+function toRgbString(color) {
+	return "rgb("+color.r*255+","+color.g*255+","+color.b*255+")";
+}
+function toRgbaString(color) {
+	return "rgb("+color.r*255+","+color.g*255+","+color.b*255+","+color.a+")";
+}
+function hslToColor(string) {
+
+}
+function randomColor(params) {
+	if(params.brightness=="dark") {
+		var randH = Math.random();
+		var randS = Math.random()*0.4+0.3;
+		var randL = Math.random()*0.14+0.05;
+
+		return {h:randH, s:randS, l:randL};
+	} else if(params.brightness=="medium") {
+		var randH = Math.random();
+		var randS = Math.random()*0.2+0.7;
+		var randL = Math.random()*0.2+0.4;
+
+		return {h:randH, s:randS, l:randL};
+	} else if(params.brightness=="light") {
+		var randH = Math.random();
+		var randS = Math.random()*0.4+0.3;
+		var randL = Math.random()*0.2+0.7;
+
+		return {h:randH, s:randS, l:randL};
+	} else {
+		return {h:Math.random(), s:Math.random(), l:Math.random()};
+	}
+}
+
+
+//draw functions
+function drawLine(point1, point2, context) {
+	context.beginPath();
+	context.moveTo(point1.x, point1.y);
+	context.lineTo(point2.x, point2.y);
+	context.stroke();
+}
+function strokePath(points) {
+	ctx.beginPath();
+	ctx.moveTo(points[0].x, points[0].y);
+	for(var i=1; i<points.length; i++) {
+		ctx.lineTo(points[i].x, points[i].y);
+	}
+	ctx.stroke();
+}
+function fillPath(points) {
+	ctx.beginPath();
+	ctx.moveTo(points[0].x, points[0].y);
+	for(var i=1; i<points.length; i++) {
+		ctx.lineTo(points[i].x, points[i].y);
+	}
+	ctx.lineTo(points[0].x, points[0].y);
+	ctx.fill();
+}
+function drawPixel(position, color) {
+	ctx.beginPath();
+	ctx.fillStyle = color;
+	ctx.rect( position.x, position.y, 1, 1 );
+	ctx.fill();
+}
+function drawCircle(position, radius, color) {
+	ctx.fillStyle = color;
+	ctx.arc(position.x, position.y, radius, 0, 2*Math.PI);
+	ctx.fill();
+}
+function alter(colorstring, params) {
+
+}
+
+// ---------- Scene functions ------------
+
+function make1DNoise(axis, amplitude, scale, params) { //scale normalized at 0.01, amp at 100
+	var newNoise = [];
+
+	for(var i=0; i<CANVAS_WIDTH; i++) {
+		newNoise.push({x: i, y:axis+amplitude*params.noiseFunction(scale*i, params.zaxis)});	
+	}
+
+	//find minimum
+	if(params.keepmax) {
+		var maxValue = -9999999;
+		for(var i=0; i<CANVAS_WIDTH; i++) {
+			if(newNoise[i].y>maxValue) {
+				data.maxValue = newNoise[i];
+				maxValue = newNoise[i].y;
+			}
+		}
+	}
+	if(params.storepoints) data.points = copy(newNoise);
+
+	// strokePath(newNoise);
+	newNoise.push(LOWER_LEFT); newNoise.push(LOWER_RIGHT);
+	ctx.fillStyle = params.fillColor;
+	fillPath(newNoise);
+
+
+	if(params.clip) ctx.clip();
+}
+
+function makeStars(starcount) {
+	ctx.fillStyle="#FFFFFF";
+	for(var i=0; i<starcount; i++) { //making 300 stars
+		var starx = Math.random()*canvas.width;
+		var stary = Math.random()*canvas.height;
+
+		if(stary<200) {
+			if(Math.random()<0.05){
+				//make a big star
+				ctx.beginPath();
+				
+				var starwidth = Math.random()*7+3;
+				ctx.rect(starx-1, stary-starwidth, 2, 2*starwidth);
+				ctx.rect(starx-starwidth, stary-1, 2*starwidth, 2);
+
+				var grd=ctx.createRadialGradient(starx, stary, 3, starx, stary, starwidth+5);
+				grd.addColorStop(0,"white");
+				grd.addColorStop(1,"rgba(1, 1, 1, 0.0)");
+				ctx.fillStyle=grd;
+
+				ctx.fill();
+			}
+			else {
+				//make a normal star
+				ctx.beginPath();
+				ctx.arc(starx, stary, 1, 0, 2.0*Math.PI)
+				ctx.fill();
+			}
+		} else {
+			//make a normal star
+			ctx.beginPath();
+			ctx.arc(starx, stary, 1, 0, 2.0*Math.PI)
+			ctx.fill();
+		}
+	}
+}
+
+function makeRiver(position, params) {
+	var halfwidth = params.halfwidth;
+	var points = [];
+
+	for(var i=0; i<CANVAS_HEIGHT; i++) { //go along one edge
+		del = abs(position.y-i);
+		points.push({x:10*simplex.noise2D(100, i/30)+position.x+halfwidth+del*params.slope, y:i});
+	}
+	for(var i=CANVAS_HEIGHT-1; i>=0; i--) { //go along the other edge
+		del = abs(position.y-i);
+		points.push({x:10*simplex.noise2D(200, i/30)+position.x-halfwidth-del*params.slope, y:i});
+	}
+
+	ctx.fillStyle=params.color;
+	fillPath(points);
+}
+
+function makeSun(position, params) {
+	ctx.beginPath();
+	ctx.arc(position.x, position.y, params.innerradius, 0, 2*Math.PI);
+	ctx.globalAlpha = 0.95;
+	ctx.fillStyle=toHslString({h:baseColor.h, s:0.3, l:0.8});
+	ctx.fill();
+
+	ctx.arc(position.x, position.y, params.outerradius, 0, 2*Math.PI);
+	ctx.globalAlpha = 0.5;
+	ctx.fillStyle=toHslString({h:baseColor.h, s:0.3, l:0.9});
+	ctx.fill();
+
+	ctx.globalAlpha = 1.0;
+}
+function makePlanet(position, radius, params) {
+	ctx.beginPath();
+	ctx.arc(position.x, position.y, radius, 0, 2*Math.PI);
+	ctx.fillStyle = colors.planetColor;
+	ctx.fill();
+	ctx.save();
+	ctx.clip();
+
+	//in a square around the planet
+	var xposmax = position.x+radius;
+	var yposmax = position.y+radius;
+	ctx.globalCompositeOperation = 'overlay';
+	for(var xpos=position.x-radius; xpos<xposmax; xpos++) {
+		for(var ypos=position.y-radius; ypos<yposmax; ypos++) {
+			if(simplex.noise2D(xpos, ypos)>0.1+Math.random()*0.2) {
+				drawPixel({x:xpos, y:ypos}, 'rgba(0, 0, 0, 0.05)');
+			}
+			if(simplex.noise2D(xpos*0.03, ypos*0.03)>0.1+Math.random()*0.2) {
+				drawPixel({x:xpos, y:ypos}, 'rgba(0, 0, 0, 0.05)');
+			}
+		}
+	}
+	ctx.fillStyle="rgba(255, 255, 255, 0.1)";
+	ctx.beginPath();
+	ctx.ellipse(position.x+60, position.y-60, 60, 40, 45 * Math.PI/180, 0, 2 * Math.PI);
+	ctx.fill(); ctx.beginPath();
+	ctx.ellipse(position.x+40, position.y-40, 80, 60, 45 * Math.PI/180, 0, 2 * Math.PI);
+	ctx.fill(); ctx.beginPath();
+	ctx.ellipse(position.x+20, position.y-20, 100, 80, 45 * Math.PI/180, 0, 2 * Math.PI);
+	ctx.fill();
+	ctx.globalCompositeOperation = 'source-over';
+
+	ctx.restore();
+
+}
+function makeClouds(params) {
+	// ctx.fillStyle = colors.cloudColor;
+	ctx.globalAlpha = 0.4;
+	ctx.beginPath();
+	for(var i=0; i<CANVAS_WIDTH; i++) {
+		for(var j=0; j<CANVAS_HEIGHT; j++) {
+			var noiseValue = simplex.noise2D(i*0.001+params.offset, j*0.01+params.offset);
+			if(noiseValue>params.threshold
+				+Math.random()*params.variance
+				) {
+				drawPixel({x:i, y:j}, colors.cloudColor);
+				// ctx.beginPath();
+				// ctx.arc(i, j, 5, 0, 2*Math.PI);
+				// ctx.fill();
+			}
+
+		}
+	}
+	ctx.globalAlpha = 1.0;
+}
+
+
+// --------- actual scene generation ----------
+// by doing this in the order of sky-mountain-hills, we can essentially 
+// hide the background stuff by layering
+
+//set up some stuff
+if(Math.random()<0.5) {
+	data.time = "day";	
+} else {
+	data.time = "night";
+}
+
+//generate colors:
+//right now this procedure just varies the hue a bit and makes closer things brighter
+var baseColor, mountainColor, hillColor, riverColor, cloudColor, treeColor, leafColor;
+
+if(data.time=="night") {
+	baseColor = randomColor({brightness:"dark"});
+	mountainColor = {h:baseColor.h+Math.random()*0.2-0.1, 
+						 s:baseColor.s+Math.random()*0.2-0.1,
+						 l:baseColor.l+Math.random()*0.1+0.15};
+	hillColor = {h:mountainColor.h+Math.random()*0.2-0.1, 
+					 s:mountainColor.s+Math.random()*0.2-0.1,
+					 l:mountainColor.l+Math.random()*0.1+0.15};	
+	riverColor = {h:baseColor.h,
+				 	s:baseColor.s-Math.random()*0.1-0.05,
+				 	l:baseColor.l+Math.random()*0.1-0.05
+					};
+	cloudColor={h:baseColor.h, s:0.4, l:0.2};
+	treeColor={h:baseColor.h+0.5, s:0.4, l:0.2};
+	leafColor={h:treeColor.h+0.5, s:0.8, l:0.6};
+	planetColor={h:hillColor.h, s:0.4, l:0.4};
+} else if(data.time=="day") {
+	baseColor = randomColor({brightness:"medium"});
+	mountainColor = {h:baseColor.h+0.4+Math.random()*0.1, 
+						 s:0.2+Math.random()*0.2,
+						 l:baseColor.l+Math.random()*0.1-0.05};
+	hillColor = {h:mountainColor.h+Math.random()*0.2-0.1, 
+					 s:0.4+Math.random()*0.2,
+					 l:baseColor.l+Math.random()*0.1};
+	riverColor = {h:baseColor.h,
+				 	s:baseColor.s-Math.random()*0.1-0.05,
+				 	l:baseColor.l+Math.random()*0.1+0.2
+					};
+	cloudColor={h:baseColor.h, s:0.3, l:0.9};
+	treeColor={h:baseColor.h-0.25, s:0.6, l:0.4};
+	leafColor={h:treeColor.h+0.5, s:0.8, l:0.6};
+	planetColor={h:treeColor.h+0.5, s:0.8, l:0.6};
+}
+			 
+
+colors.skyColor=toHslString(baseColor);
+colors.mountainColor = toHslString(mountainColor);
+colors.hillColor = toHslString(hillColor);
+colors.cloudColor = toHslString(cloudColor);
+colors.treeColor = toHslString(treeColor);
+colors.leafColor = toHslString(leafColor);
+colors.planetColor = toHslString(planetColor);
+
+
+
+//make sky
+ctx.beginPath();
+ctx.rect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = colors.skyColor;
+ctx.fill();
+// do some triangulation
+var trianglePoints = [];
+trianglePoints.push([0, CANVAS_HEIGHT], [0, 0], [CANVAS_WIDTH, CANVAS_HEIGHT], [CANVAS_WIDTH, 0]); //add corners
+for(var i=0; i<15; i++) { //add some stuff on top and bototm
+	trianglePoints.push([Math.random()*CANVAS_WIDTH, 0]);
+	trianglePoints.push([Math.random()*CANVAS_WIDTH, CANVAS_HEIGHT]);
+}
+for(var i=0; i<10; i++) { //add some stuff on the sides
+	trianglePoints.push([0, Math.random()*CANVAS_HEIGHT]);
+	trianglePoints.push([CANVAS_WIDTH, Math.random()*CANVAS_HEIGHT]);
+}
+for(var i=0; i<50; i++) { //add some stuff in the middle
+	trianglePoints.push([Math.random()*CANVAS_WIDTH, Math.random()*CANVAS_HEIGHT]);
+}
+
+var triangles = Delaunay.triangulate(trianglePoints); //do the actual triangulation
+
+var newtriangle =[];
+for(var i=0; i<triangles.length; i++) {
+	newtriangle.push(toTuple(trianglePoints[triangles[i]]));
+	if(newtriangle.length==3) {
+		if(data.time=='day') {
+			ctx.fillStyle = toHslString({h:baseColor.h, s:baseColor.s+Math.random()*0.1-0.05, l:baseColor.l+Math.random()*0.1-0.05});	
+		} else {
+			ctx.fillStyle = toHslString({h:baseColor.h, s:baseColor.s+Math.random()*0.01-0.005, l:baseColor.l+Math.random()*0.01-0.005});
+		}
+		
+		fillPath(newtriangle);
+
+		newtriangle = [];
+	}
+}
+
+//make stars
+//later on generalize this to all sky objects, take into account day/night
+//TODO vary star color
+if(data.time=="night") {
+	makeStars(300);
+	var planetRadius = 100;
+	makePlanet({x:100+Math.random()*(CANVAS_WIDTH-200), y:130}, planetRadius, {});
+
+} else {
+	var sunradius = 50;
+makeSun({x:100+Math.random()*(CANVAS_WIDTH-200), y:100}, {innerradius:sunradius, outerradius:sunradius+8});
+}
+
+
+//make clouds
+makeClouds({threshold:0.55, variance:0.03, offset:0});
+
+//make mountains
+make1DNoise(430, 200, 0.005, {noiseFunction:mountainNoise, fillColor:colors.mountainColor, zaxis:0}); 
+//mountain shading: consider adding a clipping mask? move nonlinearly? splatter/grainy effects?
+//could also guess direction of noise first
+mountainshade = {h:mountainColor.h, s:mountainColor.s-0.05, l:mountainColor.l-0.04};
+for(var i=0; i<3; i++) {
+	make1DNoise(430, 200, 0.005, {noiseFunction:mountainNoise, fillColor:toHslString(mountainshade), 
+	zaxis:0.07*i}); 
+	mountainshade.s-=0.05; mountainshade.l-=0.04;
+}
+
+//make clouds again
+makeClouds({threshold:0.65, variance:0.02, offset:100});
+
+//make hills
+ctx.save();
+make1DNoise(500, 50, 0.002, {noiseFunction:hillNoise, fillColor:colors.hillColor, zaxis:0,keepmax:true,clip:true, storepoints:true});
+//make a brigthen() darken() function
+make1DNoise(520, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.05}), zaxis:0.02});
+make1DNoise(550, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.1}), zaxis:0.04});
+make1DNoise(600, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.15}), zaxis:0.06});
+//make river
+//add a random chance to make the river
+for(var i=5; i>0; i--) {
+	colors.riverColor = toHslString({h:riverColor.h, s:riverColor.s+Math.random()*0.1-0.05, l:riverColor.l+Math.random()*0.1-0.05});
+	makeRiver(data.maxValue, {halfwidth:i*10, color:colors.riverColor, slope:1-(5-i)*0.2});	
+}
+
+//make some trees
+ctx.restore();
+//make trees rooted from below hills, above bottom, and not w/in 100 pixels of river
+//this cannot possibly be efficient but idk how else to do it. maybe cache each shape as an object so points can be picked from withint he region?
+
+var treewidth = Math.floor(3+2*Math.random());
+var treeheight = (6+2.1*Math.random())*treewidth;
+for(var i=0; i<100; i++) {
+	var treex = Math.random()*CANVAS_WIDTH;
+	var treey = Math.random()*CANVAS_HEIGHT;
+
+	if((treex<data.maxValue.x-150 || treex>data.maxValue.x+150) && treey>data.points[Math.floor(treex)].y) {
+		//draw a tree at treex, treey
+		ctx.fillStyle= colors.treeColor;
+		ctx.fillRect(treex, treey, -treewidth, -treeheight);
+		//draw a blob for leaves
+		ctx.fillStyle = colors.leafColor;
+		var leafcenter = {x:treex-treewidth/2, y:treey-treeheight};
+		var blobpoints = [];
+		var pointcount = 30, radius = 10;
+		for(var j=0; j<pointcount; j++) {//map points onto a circle
+			var prepos = {x:leafcenter.x+radius*Math.cos(j*(2*Math.PI)/pointcount),
+						     y:leafcenter.y+radius*Math.sin(j*(2*Math.PI)/pointcount) };
+			newradius = radius + 5*simplex.noise2D(prepos.x, prepos.y);
+			var newpos = {x:leafcenter.x+newradius*Math.cos(j*(2*Math.PI)/pointcount),
+						     y:leafcenter.y+newradius*Math.sin(j*(2*Math.PI)/pointcount) };
+			blobpoints.push(newpos);
+		}
+		fillPath(blobpoints);
+
+		//store the position so it can be clicked on
+		clickboxes.push({left:treex-radius, right:treex+radius, top:treey-treeheight-radius, bottom:treey,
+			action:makeBigTree});
+	}
+}
+
+////////// do things on the second canvas
+var canvas2 = document.getElementById("canvas2");
+var ctx2 =  canvas2.getContext('2d');
+//make into normal coordinates
+ctx2.save();
+ctx2.webkitImageSmoothingEnabled=true;
+function makeBigTree(newseed) {
+	ctx2.setTransform(1, 0, 0, 1, 0, 0);
+	ctx2.translate(200, 200);
+	ctx2.scale(1, -1);
+	ctx2.clearRect(-200, -200, 400, 400);
+	ctx2.strokeStyle="black";
+	ctx2.lineWidth = 3;
+	seed = newseed;
+	branch(50);
+}
+function branch(len){
+  var theta = random()*(Math.PI/3);
+
+
+  drawLine({x:0, y:0}, {x:0, y:len}, ctx2);
+  ctx2.translate(0, len);
+
+  len *= 0.66;
+  if (len > 2) {
+    ctx2.save();
+    ctx2.rotate(theta);
+    branch(len);
+    ctx2.restore();
+
+    ctx2.save();
+    ctx2.rotate(-theta);
+    branch(len);
+    ctx2.restore();
+  }
+}
+function getMousePos(canvas, evt) {
+	var rect = canvas.getBoundingClientRect();
+	return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+}
+canvas.addEventListener('mousedown', doMouseDown, false);
+function doMouseDown(evt) {
+	var mousePos = getMousePos(canvas, evt);
+	for(var i=0; i<clickboxes.length; i++) {
+		if(mousePos.x>clickboxes[i].left && mousePos.x<clickboxes[i].right 
+	    && mousePos.y>clickboxes[i].top  && mousePos.y<clickboxes[i].bottom) {
+			clickboxes[i].action(i);
+	    }
+	}
+}
+
+
+
+
+</script>
+
+</body>
+</html>
