@@ -10,8 +10,6 @@
 			margin-left:10px;
 		}
 	</style>
-	<script type="text/javascript" src="./lib/processing.min.js"></script>
-	<script type="text/javascript" src="./lib/perlin.js"></script>
 	<script type="text/javascript" src="./lib/color.js"></script>
 	<script type="text/javascript" src="./lib/simplex-noise.js"></script>
 	<script type="text/javascript" src="./lib/delaunay.js"></script>
@@ -22,8 +20,6 @@
 <body>
 <canvas id = "canvas" width="960" height="600"></canvas>
 <canvas id = "canvas2" width="400" height="400"></canvas>
-
-<!-- <canvas data-processing-sources="hello-web.pde"></canvas> -->
 
 <script type="text/javascript">
 // ------ Set up some basic stuff ---------
@@ -69,7 +65,7 @@ var data = {
 }
 var clickboxes = [];
 
-//a thing
+//a useful tools
 function copy(object) {
 	return JSON.parse(JSON.stringify(object));
 }
@@ -195,7 +191,6 @@ function make1DNoise(axis, amplitude, scale, params) { //scale normalized at 0.0
 	}
 	if(params.storepoints) data.points = copy(newNoise);
 
-	// strokePath(newNoise);
 	newNoise.push(LOWER_LEFT); newNoise.push(LOWER_RIGHT);
 	ctx.fillStyle = params.fillColor;
 	fillPath(newNoise);
@@ -210,9 +205,9 @@ function makeStars(starcount) {
 		var starx = Math.random()*canvas.width;
 		var stary = Math.random()*canvas.height;
 
-		if(stary<200) {
+		if(stary<200) { //near the top
 			if(Math.random()<0.05){
-				//make a big star
+				//make a big star (20% chance)
 				ctx.beginPath();
 				
 				var starwidth = Math.random()*7+3;
@@ -280,7 +275,7 @@ function makePlanet(position, radius, params) {
 	ctx.save();
 	ctx.clip();
 
-	//in a square around the planet
+	//in a square around the planet so that we don't make too much
 	var xposmax = position.x+radius;
 	var yposmax = position.y+radius;
 	ctx.globalCompositeOperation = 'overlay';
@@ -339,7 +334,7 @@ if(Math.random()<0.5) {
 	data.time = "night";
 }
 
-// data.time = "day";
+// data.time = "day"; //for debugging
 
 //generate colors:
 //right now this procedure just varies the hue a bit and makes closer things brighter
@@ -393,7 +388,7 @@ if(data.time=="night") {
 	planetColor={h:treeColor.h+0.5, s:0.8, l:0.6};
 }
 			 
-
+//TODO put this into an loop call
 colors.skyColor=toHslString(baseColor);
 colors.skyColor2=toHslString(skyColor2);
 colors.mountainColor = toHslString(mountainColor);
@@ -407,153 +402,153 @@ colors.planetColor = toHslString(planetColor);
 
 //-- make sky --
 if(enabled.sky) {
-ctx.beginPath();
-ctx.rect(0, 0, canvas.width, canvas.height);
-// ctx.fillStyle = colors.skyColor;
-var grd=ctx.createLinearGradient(0,CANVAS_HEIGHT,0,0);
-grd.addColorStop(0,colors.skyColor);
-grd.addColorStop(1,colors.skyColor2);
-ctx.fillStyle=grd;
-ctx.fill();
-// do some triangulation
-var trianglePoints = [];
-trianglePoints.push([0, CANVAS_HEIGHT], [0, 0], [CANVAS_WIDTH, CANVAS_HEIGHT], [CANVAS_WIDTH, 0]); //add corners
-for(var i=0; i<15; i++) { //add some stuff on top and bototm
-	trianglePoints.push([Math.random()*CANVAS_WIDTH, 0]);
-	trianglePoints.push([Math.random()*CANVAS_WIDTH, CANVAS_HEIGHT]);
-}
-for(var i=0; i<10; i++) { //add some stuff on the sides
-	trianglePoints.push([0, Math.random()*CANVAS_HEIGHT]);
-	trianglePoints.push([CANVAS_WIDTH, Math.random()*CANVAS_HEIGHT]);
-}
-for(var i=0; i<50; i++) { //add some stuff in the middle
-	trianglePoints.push([Math.random()*CANVAS_WIDTH, Math.random()*CANVAS_HEIGHT]);
-}
-
-var triangles = Delaunay.triangulate(trianglePoints); //do the actual triangulation
-
-var newtriangle =[];
-for(var i=0; i<triangles.length; i++) {
-	newtriangle.push(toTuple(trianglePoints[triangles[i]]));
-	if(newtriangle.length==3) {
-		if(data.time=='day') {
-			ctx.fillStyle = toHslString({h:baseColor.h, s:baseColor.s+Math.random()*0.1-0.05, l:baseColor.l+Math.random()*0.1-0.05});
-			var center={x:0, y:0};
-			center.x = (newtriangle[0].x+newtriangle[1].x+newtriangle[2].x)/3;
-			center.y = (newtriangle[0].y+newtriangle[1].y+newtriangle[2].y)/3;
-			var centercolor = ctx.getImageData(center.x, center.y, 1, 1).data;
-			
-			var fillcolor = "rgb("+centercolor[0]+", "+centercolor[1]+", "+centercolor[2]+")";
-			ctx.fillStyle = fillcolor;
-		} else {
-			ctx.fillStyle = toHslString({h:baseColor.h, s:baseColor.s+Math.random()*0.01-0.005, l:baseColor.l+Math.random()*0.01-0.005});
-		}
-		
-		fillPath(newtriangle);
-
-		newtriangle = [];
+	ctx.beginPath();
+	ctx.rect(0, 0, canvas.width, canvas.height);
+	// ctx.fillStyle = colors.skyColor;
+	var grd=ctx.createLinearGradient(0,CANVAS_HEIGHT,0,0);
+	grd.addColorStop(0,colors.skyColor);
+	grd.addColorStop(1,colors.skyColor2);
+	ctx.fillStyle=grd;
+	ctx.fill();
+	// do some triangulation
+	var trianglePoints = [];
+	trianglePoints.push([0, CANVAS_HEIGHT], [0, 0], [CANVAS_WIDTH, CANVAS_HEIGHT], [CANVAS_WIDTH, 0]); //add corners
+	for(var i=0; i<15; i++) { //add some stuff on top and bototm
+		trianglePoints.push([Math.random()*CANVAS_WIDTH, 0]);
+		trianglePoints.push([Math.random()*CANVAS_WIDTH, CANVAS_HEIGHT]);
 	}
-}
+	for(var i=0; i<10; i++) { //add some stuff on the sides
+		trianglePoints.push([0, Math.random()*CANVAS_HEIGHT]);
+		trianglePoints.push([CANVAS_WIDTH, Math.random()*CANVAS_HEIGHT]);
+	}
+	for(var i=0; i<50; i++) { //add some stuff in the middle
+		trianglePoints.push([Math.random()*CANVAS_WIDTH, Math.random()*CANVAS_HEIGHT]);
+	}
+
+	var triangles = Delaunay.triangulate(trianglePoints); //do the actual triangulation
+
+	var newtriangle =[];
+	for(var i=0; i<triangles.length; i++) {
+		newtriangle.push(toTuple(trianglePoints[triangles[i]]));
+		if(newtriangle.length==3) {
+			if(data.time=='day') {
+				ctx.fillStyle = toHslString({h:baseColor.h, s:baseColor.s+Math.random()*0.1-0.05, l:baseColor.l+Math.random()*0.1-0.05});
+				var center={x:0, y:0};
+				center.x = (newtriangle[0].x+newtriangle[1].x+newtriangle[2].x)/3;
+				center.y = (newtriangle[0].y+newtriangle[1].y+newtriangle[2].y)/3;
+				var centercolor = ctx.getImageData(center.x, center.y, 1, 1).data;
+				
+				var fillcolor = "rgb("+centercolor[0]+", "+centercolor[1]+", "+centercolor[2]+")";
+				ctx.fillStyle = fillcolor;
+			} else {
+				ctx.fillStyle = toHslString({h:baseColor.h, s:baseColor.s+Math.random()*0.01-0.005, l:baseColor.l+Math.random()*0.01-0.005});
+			}
+			
+			fillPath(newtriangle);
+
+			newtriangle = [];
+		}
+	}
 }
 //-- make stars/ sun --
 //later on generalize this to all sky objects, take into account day/night
 //TODO vary star color
 if(enabled.stars){
-if(data.time=="night") {
-	makeStars(300);
-	var planetRadius = 100;
-	if(enabled.planet) {
-		makePlanet({x:100+Math.random()*(CANVAS_WIDTH-200), y:130}, planetRadius, {});	
+	if(data.time=="night") {
+		makeStars(300);
+		var planetRadius = 100;
+		if(enabled.planet) {
+			makePlanet({x:100+Math.random()*(CANVAS_WIDTH-200), y:130}, planetRadius, {});	
+		}
+
+	} else {
+		var sunradius = 50;
+	makeSun({x:100+Math.random()*(CANVAS_WIDTH-200), y:100}, {innerradius:sunradius, outerradius:sunradius+8});
+
+		// var planetRadius = 100;
+		// makePlanet({x:100+Math.random()*(CANVAS_WIDTH-200), y:130}, planetRadius, {});
 	}
-
-} else {
-	var sunradius = 50;
-makeSun({x:100+Math.random()*(CANVAS_WIDTH-200), y:100}, {innerradius:sunradius, outerradius:sunradius+8});
-
-	// var planetRadius = 100;
-	// makePlanet({x:100+Math.random()*(CANVAS_WIDTH-200), y:130}, planetRadius, {});
-}
 }
 
 //-- make clouds --
 if(enabled.clouds) {
-makeClouds({threshold:0.55, variance:0.03, offset:0});
+	makeClouds({threshold:0.55, variance:0.03, offset:0});
 }
 
 //-- make mountains --
 if(enabled.mountains) {
-make1DNoise(430, 200, 0.005, {noiseFunction:mountainNoise, fillColor:colors.mountainColor, zaxis:0}); 
-//mountain shading: consider adding a clipping mask? move nonlinearly? splatter/grainy effects?
-//could also guess direction of noise first
-mountainshade = {h:mountainColor.h, s:mountainColor.s-0.05, l:mountainColor.l-0.04};
-for(var i=0; i<3; i++) {
-	make1DNoise(430, 200, 0.005, {noiseFunction:mountainNoise, fillColor:toHslString(mountainshade), 
-	zaxis:0.07*i}); 
-	mountainshade.s-=0.05; mountainshade.l-=0.04;
+	make1DNoise(430, 200, 0.005, {noiseFunction:mountainNoise, fillColor:colors.mountainColor, zaxis:0}); 
+	//mountain shading: consider adding a clipping mask? move nonlinearly? splatter/grainy effects?
+	//could also guess direction of noise first
+	mountainshade = {h:mountainColor.h, s:mountainColor.s-0.05, l:mountainColor.l-0.04};
+	for(var i=0; i<3; i++) {
+		make1DNoise(430, 200, 0.005, {noiseFunction:mountainNoise, fillColor:toHslString(mountainshade), 
+		zaxis:0.07*i}); 
+		mountainshade.s-=0.05; mountainshade.l-=0.04;
+	}
 }
-}
-// -- make clouds again --
+// -- make clouds again -- (for cool layering effect)
 if(enabled.clouds) {
-makeClouds({threshold:0.65, variance:0.02, offset:100});
+	makeClouds({threshold:0.65, variance:0.02, offset:100});
 }
 
 // -- make hills --
 if(enabled.hills) {
-ctx.save();
-make1DNoise(500, 50, 0.002, {noiseFunction:hillNoise, fillColor:colors.hillColor, zaxis:0,keepmax:true,clip:true, storepoints:true});
-//make a brigthen() darken() function
-make1DNoise(520, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.05}), zaxis:0.02});
-make1DNoise(550, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.1}), zaxis:0.04});
-make1DNoise(600, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.15}), zaxis:0.06});
-}
-//-- make river --
-//add a random chance to make the river
-if(enabled.river) {
-for(var i=5; i>0; i--) {
-	colors.riverColor = toHslString({h:riverColor.h, s:riverColor.s+Math.random()*0.1-0.05, l:riverColor.l+Math.random()*0.1-0.05});
-	makeRiver(data.maxValue, {halfwidth:i*10, color:colors.riverColor, slope:1-(5-i)*0.2});	
-}
+	ctx.save();
+	make1DNoise(500, 50, 0.002, {noiseFunction:hillNoise, fillColor:colors.hillColor, zaxis:0,keepmax:true,clip:true, storepoints:true});
+	//make a brigthen() darken() function
+	make1DNoise(520, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.05}), zaxis:0.02});
+	make1DNoise(550, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.1}), zaxis:0.04});
+	make1DNoise(600, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.15}), zaxis:0.06});
+	}
+	//-- make river --
+	//TODO add a random chance to make the river
+	if(enabled.river) {
+	for(var i=5; i>0; i--) {
+		colors.riverColor = toHslString({h:riverColor.h, s:riverColor.s+Math.random()*0.1-0.05, l:riverColor.l+Math.random()*0.1-0.05});
+		makeRiver(data.maxValue, {halfwidth:i*10, color:colors.riverColor, slope:1-(5-i)*0.2});	
+	}
 }
 //-- make some trees --
 ctx.restore();
 //make trees rooted from below hills, above bottom, and not w/in 100 pixels of river
 //this cannot possibly be efficient but idk how else to do it. maybe cache each shape as an object so points can be picked from withint he region?
 if(enabled.trees) {
-var treewidth = Math.floor(3+2*Math.random());
-var treeheight = (6+2.1*Math.random())*treewidth;
-for(var i=0; i<100; i++) {
-	var treex = Math.random()*CANVAS_WIDTH;
-	var treey = Math.random()*CANVAS_HEIGHT;
+	var treewidth = Math.floor(3+2*Math.random());
+	var treeheight = (6+2.1*Math.random())*treewidth;
+	for(var i=0; i<100; i++) {
+		var treex = Math.random()*CANVAS_WIDTH;
+		var treey = Math.random()*CANVAS_HEIGHT;
 
-	if((treex<data.maxValue.x-150 || treex>data.maxValue.x+150) && treey>data.points[Math.floor(treex)].y) {
-		//draw a tree at treex, treey
-		ctx.fillStyle= colors.treeColor;
-		ctx.fillRect(treex, treey, -treewidth, -treeheight);
-		//draw a blob for leaves
-		ctx.fillStyle = colors.leafColor;
-		var leafcenter = {x:treex-treewidth/2, y:treey-treeheight};
-		var blobpoints = [];
-		var pointcount = 30, radius = 10;
-		for(var j=0; j<pointcount; j++) {//map points onto a circle
-			var prepos = {x:leafcenter.x+radius*Math.cos(j*(2*Math.PI)/pointcount),
-						     y:leafcenter.y+radius*Math.sin(j*(2*Math.PI)/pointcount) };
-			newradius = radius + 5*simplex.noise2D(prepos.x, prepos.y);
-			var newpos = {x:leafcenter.x+newradius*Math.cos(j*(2*Math.PI)/pointcount),
-						     y:leafcenter.y+newradius*Math.sin(j*(2*Math.PI)/pointcount) };
-			blobpoints.push(newpos);
+		if((treex<data.maxValue.x-150 || treex>data.maxValue.x+150) && treey>data.points[Math.floor(treex)].y) {
+			//draw a tree at treex, treey
+			ctx.fillStyle= colors.treeColor;
+			ctx.fillRect(treex, treey, -treewidth, -treeheight);
+			//draw a blob for leaves
+			ctx.fillStyle = colors.leafColor;
+			var leafcenter = {x:treex-treewidth/2, y:treey-treeheight};
+			var blobpoints = [];
+			var pointcount = 30, radius = 10;
+			for(var j=0; j<pointcount; j++) {//map points onto a circle
+				var prepos = {x:leafcenter.x+radius*Math.cos(j*(2*Math.PI)/pointcount),
+							     y:leafcenter.y+radius*Math.sin(j*(2*Math.PI)/pointcount) };
+				newradius = radius + 5*simplex.noise2D(prepos.x, prepos.y);
+				var newpos = {x:leafcenter.x+newradius*Math.cos(j*(2*Math.PI)/pointcount),
+							     y:leafcenter.y+newradius*Math.sin(j*(2*Math.PI)/pointcount) };
+				blobpoints.push(newpos);
+			}
+			fillPath(blobpoints);
+
+			//store the position so it can be clicked on
+			clickboxes.push({left:treex-radius, right:treex+radius, top:treey-treeheight-radius, bottom:treey,
+				action:makeBigTree});
 		}
-		fillPath(blobpoints);
-
-		//store the position so it can be clicked on
-		clickboxes.push({left:treex-radius, right:treex+radius, top:treey-treeheight-radius, bottom:treey,
-			action:makeBigTree});
 	}
 }
-}
+
 ////////// do things on the second canvas
 var canvas2 = document.getElementById("canvas2");
 var ctx2 =  canvas2.getContext('2d');
-//make into normal coordinates
 ctx2.save();
 ctx2.webkitImageSmoothingEnabled=true;
 function makeBigTree(newseed) {
@@ -600,9 +595,6 @@ function doMouseDown(evt) {
 	    }
 	}
 }
-
-
-
 
 </script>
 
