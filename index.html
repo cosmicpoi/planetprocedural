@@ -37,6 +37,7 @@
 
 </head>
 <body>
+
 <canvas id = "canvas" width="960" height="600"></canvas>
 <canvas id = "canvas2" width="400" height="400" class="hidden"></canvas>
 
@@ -353,7 +354,7 @@ if(Math.random()<0.5) {
 	data.time = "night";
 }
 
-// data.time = "day"; //for debugging
+data.time = "night"; //for debugging
 
 //generate colors:
 //right now this procedure just varies the hue a bit and makes closer things brighter
@@ -379,7 +380,7 @@ if(data.time=="night") {
 
 	cloudColor={h:baseColor.h, s:0.4, l:0.2};
 	treeColor={h:baseColor.h+0.5, s:0.4, l:0.2};
-	leafColor={h:treeColor.h+0.5, s:0.8, l:0.6};
+	leafColor={h:treeColor.h+0.5, s:0.6, l:0.5};
 	planetColor={h:hillColor.h, s:0.4, l:0.4};
 
 } else if(data.time=="day") {
@@ -402,8 +403,8 @@ if(data.time=="night") {
 	};
 
 	cloudColor={h:baseColor.h, s:0.3, l:0.9};
-	treeColor={h:baseColor.h-0.25, s:0.6, l:0.4};
-	leafColor={h:treeColor.h+0.5, s:0.8, l:0.6};
+	treeColor={h:baseColor.h, s:0.4, l:0.4};
+	leafColor={h:treeColor.h+0.5, s:0.65, l:0.6};
 	planetColor={h:treeColor.h+0.5, s:0.8, l:0.6};
 }
 			 
@@ -623,6 +624,12 @@ function doMouseMove(evt) {
 	}
 
 }
+
+//nowadays chrome lets you directly save canvases as images so this is not needed
+// function saveImage() {
+// 	var dataURL = canvas.toDataURL();
+// 	document.getElementById('canvasImg').src = dataURL;
+// }
 
 </script>
 
