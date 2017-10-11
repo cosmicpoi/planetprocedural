@@ -1,6 +1,6 @@
 <html>
 <head>
-	<title></title>
+	<link href="https://fonts.googleapis.com/css?family=Raleway:300" rel="stylesheet">
 	<style type="text/css">
 		canvas {
 			border:1px solid black;
@@ -28,6 +28,29 @@
 			justify-content: center;
 			align-items: center;
 		}
+		h1.logo {
+			color:white;
+			font-family: 'Raleway', sans-serif;
+			font-weight:300;
+			margin-bottom:0;
+		}
+		.links {
+			margin-bottom:1.5em;
+			font-family: 'Raleway', sans-serif;
+			font-weight:300;
+			color:white;
+		}
+		.links a {
+			text-decoration:none;
+			color:#c3c3c3;
+			border-radius:2px;
+			padding:2px 3px;
+		}
+		.links a:hover {
+			background:white;
+			color:black;
+
+		}
 	</style>
 	<script type="text/javascript" src="./lib/color.js"></script>
 	<script type="text/javascript" src="./lib/simplex-noise.js"></script>
@@ -37,6 +60,9 @@
 
 </head>
 <body>
+
+	<h1 class="logo">LITTLE PLANET PROCEDURAL</h1>
+	<div class="links"><a href="https://github.com/alan-luo/planetprocedural">github</a> - <a href="http://docs.alanluo.com/?Projects%2FLittle-Planet-Procedural">docs</a></div>
 
 <canvas id = "canvas" width="960" height="600"></canvas>
 <canvas id = "canvas2" width="400" height="400" class="hidden"></canvas>
