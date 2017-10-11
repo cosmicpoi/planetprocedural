@@ -4,10 +4,29 @@
 	<style type="text/css">
 		canvas {
 			border:1px solid black;
-			float:left;
 		}
 		#canvas2 {
 			margin-left:10px;
+			position: absolute;
+			background-color: white;
+		}
+
+		.hidden {
+			display: none;
+		}
+
+		body {
+			/* bare-bones reset */
+			margin: 0;
+			padding: 0;
+			border: 0;
+			background-color: black;
+
+			/* center children */
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
 		}
 	</style>
 	<script type="text/javascript" src="./lib/color.js"></script>
@@ -19,7 +38,7 @@
 </head>
 <body>
 <canvas id = "canvas" width="960" height="600"></canvas>
-<canvas id = "canvas2" width="400" height="400"></canvas>
+<canvas id = "canvas2" width="400" height="400" class="hidden"></canvas>
 
 <script type="text/javascript">
 // ------ Set up some basic stuff ---------
@@ -585,15 +604,24 @@ function getMousePos(canvas, evt) {
 	var rect = canvas.getBoundingClientRect();
 	return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
 }
-canvas.addEventListener('mousedown', doMouseDown, false);
-function doMouseDown(evt) {
+canvas.addEventListener('mousemove', doMouseMove, false);
+function doMouseMove(evt) {
 	var mousePos = getMousePos(canvas, evt);
+	var showBox = false;
 	for(var i=0; i<clickboxes.length; i++) {
 		if(mousePos.x>clickboxes[i].left && mousePos.x<clickboxes[i].right 
 	    && mousePos.y>clickboxes[i].top  && mousePos.y<clickboxes[i].bottom) {
 			clickboxes[i].action(i);
+			showBox = true;
 	    }
 	}
+
+	if (showBox) {
+		document.querySelector('#canvas2').classList.remove('hidden');
+	} else {
+		document.querySelector('#canvas2').classList.add('hidden');
+	}
+
 }
 
 </script>
