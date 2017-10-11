@@ -175,10 +175,11 @@ function fillPath(points) {
 	ctx.lineTo(points[0].x, points[0].y);
 	ctx.fill();
 }
+//TODO this would be optimized a lot if it didn't set color every time
 function drawPixel(position, color) {
 	ctx.beginPath();
 	ctx.fillStyle = color;
-	ctx.rect( position.x, position.y, 1, 1 );
+	ctx.rect(position.x, position.y, 1, 1);
 	ctx.fill();
 }
 function drawCircle(position, radius, color) {
@@ -296,19 +297,22 @@ function makePlanet(position, radius, params) {
 	ctx.clip();
 
 	//in a square around the planet so that we don't make too much
-	var xposmax = position.x+radius;
-	var yposmax = position.y+radius;
-	ctx.globalCompositeOperation = 'overlay';
+
+	//todo: fix performance here. it's REALLY bad
+	var xposmax = Math.floor(position.x+radius);
+	var yposmax = Math.floor(position.y+radius);
 	for(var xpos=position.x-radius; xpos<xposmax; xpos++) {
 		for(var ypos=position.y-radius; ypos<yposmax; ypos++) {
-			if(simplex.noise2D(xpos, ypos)>0.1+Math.random()*0.2) {
-				drawPixel({x:xpos, y:ypos}, 'rgba(0, 0, 0, 0.05)');
-			}
+			//this adds some graininess
+			// if(simplex.noise2D(xpos*0.5, ypos*0.5)>0.1+Math.random()*0.2) {
+			// 	drawPixel({x:xpos, y:ypos}, 'rgba(0, 0, 0, 0.01)');
+			// }
 			if(simplex.noise2D(xpos*0.03, ypos*0.03)>0.1+Math.random()*0.2) {
-				drawPixel({x:xpos, y:ypos}, 'rgba(0, 0, 0, 0.05)');
+				drawPixel({x:xpos, y:ypos}, 'rgba(0, 0, 0, 0.03)');
 			}
 		}
 	}
+	ctx.globalCompositeOperation = 'overlay';
 	ctx.fillStyle="rgba(255, 255, 255, 0.1)";
 	ctx.beginPath();
 	ctx.ellipse(position.x+60, position.y-60, 60, 40, 45 * Math.PI/180, 0, 2 * Math.PI);
@@ -354,7 +358,7 @@ if(Math.random()<0.5) {
 	data.time = "night";
 }
 
-data.time = "night"; //for debugging
+// data.time = "night"; //for debugging
 
 //generate colors:
 //right now this procedure just varies the hue a bit and makes closer things brighter
@@ -516,7 +520,7 @@ if(enabled.clouds) {
 if(enabled.hills) {
 	ctx.save();
 	make1DNoise(500, 50, 0.002, {noiseFunction:hillNoise, fillColor:colors.hillColor, zaxis:0,keepmax:true,clip:true, storepoints:true});
-	//make a brigthen() darken() function
+	//TODO make a brigthen() darken() function
 	make1DNoise(520, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.05}), zaxis:0.02});
 	make1DNoise(550, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.1}), zaxis:0.04});
 	make1DNoise(600, 50, 0.002, {noiseFunction:hillNoise, fillColor:toHslString({h:hillColor.h, s:hillColor.s, l:hillColor.l+0.15}), zaxis:0.06});
